@@ -196,7 +196,14 @@ To run the Database Integration tests, make your database authentication rules
 
 ### Firebase Storage
 
-To run the Storage Integration tests, follow the instructions in
+Before running the integration tests, ensure that a `GoogleService-Info.plist` file has been added to the 
+the pod's target. Note that this file is not generated from the  `pod gen` command and must therefore be
+added manually by creating it in the Firebase console. Follow the [instructions](#running-sample-apps) mentioned
+above. When asked for the bundle identifier, use the bundle identifier of the generated `AppHost-FirebaseStorage-Unit-Tests` target.
+This can be found by navigating to the `Signings & Capabilities` tab of the `Pods` project.
+
+After downloading the `GoogleService-Info.plist` from the console, navigate to the `Storage` dashboard and set up the app's 
+storage containe. For more information follow the instructions in
 [FIRStorageIntegrationTests.m](FirebaseStorage/Tests/Integration/FIRStorageIntegrationTests.m).
 
 #### Push Notifications
