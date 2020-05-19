@@ -368,6 +368,30 @@ class StorageIntegration: XCTestCase {
     }
     waitForExpectations()
   }
+  
+  func testUnauthenticatedGetDataInSpecifiedCallbackQueue() {
+    let expectation = self.expectation(description: #function)
+    
+    let callbackQueueLabel = "myCallbackQueue"
+    let callbackQueue = DispatchQueue(label: callbackQueueLabel)
+    let callbackQueueKey = DispatchSpecificKey<String>()
+    callbackQueue.setSpecific(key: callbackQueueKey, value: callbackQueueLabel)
+    storage.callbackQueue = callbackQueue
+    
+    let ref = storage.reference(withPath: "ios/public/1mb")
+    ref.getData(maxSize: 1024 * 1024) { (data, error) in
+      XCTAssertNotNil(data, "Data should not be nil")
+      XCTAssertNil(error, "Error should be nil")
+      XCTAssertFalse(Thread.isMainThread)
+      XCTAssertEqual(DispatchQueue.getSpecific(key: callbackQueueKey), callbackQueueLabel)
+      expectation.fulfill()
+
+      // reset the callbackQueue to default (main queue)
+      self.storage.callbackQueue = DispatchQueue.main
+      callbackQueue.setSpecific(key: callbackQueueKey, value: nil)
+    }
+    waitForExpectations()
+  }
 
   func testUnauthenticatedSimpleGetDataTooSmall() {
     let expectation = self.expectation(description: #function)
