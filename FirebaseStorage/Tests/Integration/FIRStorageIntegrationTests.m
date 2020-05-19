@@ -450,6 +450,33 @@ NSTimeInterval kFIRStorageIntegrationTestTimeout = 60;
   [self waitForExpectations];
 }
 
+- (void)testUnauthenticatedGetDataInCustomCallbackQueue {
+  XCTestExpectation *expectation =
+      [self expectationWithDescription:@"testUnauthenticatedGetDataInCustomCallbackQueue"];
+  
+  __block NSString *callbackQueueLabel = @"myCallbackQueue";
+  const char *label = [callbackQueueLabel UTF8String];
+  dispatch_queue_t callbackQueue = dispatch_queue_create(label, DISPATCH_QUEUE_SERIAL);
+  _storage.callbackQueue = callbackQueue;
+  
+  FIRStorageReference *ref = [self.storage referenceWithPath:@"ios/public/1mb"];
+  
+  [ref dataWithMaxSize:1 * 1024 * 1024
+            completion:^(NSData *data, NSError *error) {
+              const char * currentQueueLabel =
+                  dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL);
+              XCTAssertTrue([callbackQueueLabel isEqualToString:@(currentQueueLabel)]);
+    
+              XCTAssertNotNil(data, "Data should not be nil");
+              XCTAssertNil(error, "Error should be nil");
+              [expectation fulfill];
+    
+              self.storage.callbackQueue = dispatch_get_main_queue();
+            }];
+  
+  [self waitForExpectations];
+}
+
 - (void)testUnauthenticatedSimpleGetDataTooSmall {
   XCTestExpectation *expectation =
       [self expectationWithDescription:@"testUnauthenticatedSimpleGetDataTooSmall"];
