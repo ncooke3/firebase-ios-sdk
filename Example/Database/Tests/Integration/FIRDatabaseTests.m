@@ -97,6 +97,57 @@ static NSString *kFirebaseTestAltNamespace = @"https://foobar.firebaseio.com";
   XCTAssertThrows([FIRDatabase databaseForApp:app URL:@"http://x.fblocal.com:9000/paths/are/bad"]);
 }
 
+- (void)testPurgeWritesAndDeleteApp {
+  
+  // Set up a custom FIRApp with a custom database based on it.
+  FIROptions *options = [[FIROptions alloc] initWithGoogleAppID:@"1:123:ios:123abc"
+                                                    GCMSenderID:@"gcm_sender_id"];
+  options.databaseURL = self.databaseURL;
+  NSString *customAppName = @"MyCustomApp";
+  [FIRApp configureWithName:customAppName options:options];
+  FIRApp *customApp = [FIRApp appNamed:customAppName];
+  FIRDatabase *customDatabase = [FIRDatabase databaseForApp:customApp];
+  XCTAssertNotNil(customDatabase);
+
+  FIRDatabaseReference *ref = customDatabase.reference;
+
+  [customDatabase goOffline];
+  
+  [[ref childByAutoId] setValue:@"test-value-1"];
+  [[ref childByAutoId] setValue:@"test-value-2"];
+  [[ref childByAutoId] setValue:@"test-value-3"];
+  [[ref childByAutoId] setValue:@"test-value-4"];
+  [[ref childByAutoId] setValue:@"test-value-5"];
+  [[ref childByAutoId] setValue:@"test-value-6"];
+  [[ref childByAutoId] setValue:@"test-value-7"];
+  [[ref childByAutoId] setValue:@"test-value-8"];
+  [[ref childByAutoId] setValue:@"test-value-9"];
+  [[ref childByAutoId] setValue:@"test-value-10"];
+  
+//  [customDatabase goOnline];
+
+  [customDatabase purgeOutstandingWrites];
+  
+//  [customDatabase goOnline];
+  
+  // Delete the custom app and wait for it to be done.
+  XCTestExpectation *customAppDeletedExpectation =
+      [self expectationWithDescription:@"Deleting the custom app should be successful."];
+  [customApp deleteApp:^(BOOL success) {
+    // The app shouldn't exist anymore, ensure that the databaseForApp throws.
+    XCTAssertThrows([FIRDatabase databaseForApp:[FIRApp appNamed:customAppName]]);
+
+    [customAppDeletedExpectation fulfill];
+  }];
+
+  
+  [customDatabase goOnline];
+
+  // Wait for the custom app to be deleted.
+  [self waitForExpectations:@[ customAppDeletedExpectation ] timeout:2];
+
+}
+
 - (void)testDeleteDatabase {
   // Set up a custom FIRApp with a custom database based on it.
   FIROptions *options = [[FIROptions alloc] initWithGoogleAppID:@"1:123:ios:123abc"
